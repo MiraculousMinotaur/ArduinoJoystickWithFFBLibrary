@@ -4,6 +4,7 @@ PIDReportHandler::PIDReportHandler()
 {
 	nextEID = 1;
 	devicePaused = 0;
+	memset(&g_EffectStates, 0, sizeof(g_EffectStates));
 }
 
 PIDReportHandler::~PIDReportHandler() 
@@ -49,8 +50,7 @@ void PIDReportHandler::StopEffect(uint8_t id)
 {
 	if (id > MAX_EFFECTS)
 		return;
-	g_EffectStates[id].state &= ~MEFFECTSTATE_PLAYING;
-	pidBlockLoad.ramPoolAvailable += SIZE_EFFECT;
+	g_EffectStates[id].state = MEFFECTSTATE_ALLOCATED;
 }
 
 void PIDReportHandler::FreeEffect(uint8_t id)
@@ -60,6 +60,7 @@ void PIDReportHandler::FreeEffect(uint8_t id)
 	g_EffectStates[id].state = 0;
 	if (id < nextEID)
 		nextEID = id;
+	pidBlockLoad.ramPoolAvailable += SIZE_EFFECT;
 }
 
 void PIDReportHandler::FreeAllEffects(void)
