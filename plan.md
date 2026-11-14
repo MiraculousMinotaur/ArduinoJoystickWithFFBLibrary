@@ -294,13 +294,45 @@ Replace the commented-out `//Serial.println(...)` calls in `UppackUsbData()`, `S
 
 Implement changes as logical, reviewable commits on the `add/linux` branch:
 
-| # | Commit | Phases |
-|---|---|---|
-| 1 | `fix: add StartDelay to HID descriptor for Linux hid-pidff compliance` | 1.1, 1.2, 1.3 |
-| 2 | `fix: correct StopEffect/FreeEffect RAM accounting` | 2.1, 2.2, 2.3 |
-| 3 | `feat: add default effect system and EnableAutoCenter API` | 3.1–3.5 |
-| 4 | `refactor: cleanup unused vars, fix force range, localize out_ffbdata` | 4.1–4.5 |
-| 5 | `feat: add toggleable debug macros for FFB handlers` | 5.1, 5.2 |
+| # | Commit | Phases | Status |
+|---|---|---|---|
+| 1 | `fix: add StartDelay to HID descriptor for Linux hid-pidff compliance` (`fe2117b`) | 1.1, 1.2, 1.3 | **Done** |
+| 2 | `fix: correct StopEffect/FreeEffect RAM accounting` (`ee55c6b`) | 2.1, 2.2, 2.3 | **Done** |
+| 3 | `feat: add default effect system and EnableAutoCenter API` (`6cf1c43` + `66776da`) | 3.1–3.5 | **Done** |
+| 4 | `refactor: cleanup unused vars, fix force range, localize out_ffbdata` (`d1ce9f6`) | 4.1–4.5 | **Done** |
+| 5 | `feat: add toggleable debug macros for FFB handlers` (`a9c5b4a`) | 5.1, 5.2 | **Done** |
+
+---
+
+## Execution Summary
+
+All five planned phases are now fully implemented and committed on the `add/linux` branch:
+
+1. **Linux HID Descriptors & Struct Alignment (Phase 1 - `fe2117b`)**:
+   - Added `ENABLE_START_DELAY` (usage `0xA7`) to `pidReportDescriptor[]` in `src/FFBDescriptor.h`.
+   - Restored `DownloadForceSample` Report Count to `2` in `src/FFBDescriptor.h`.
+   - Uncommented `uint16_t startDelay;` in `USB_FFBReport_SetEffect_Output_Data_t` in `src/DynamicHID/PIDReportType.h`.
+
+2. **RAM Management & State Initialization (Phase 2 - `ee55c6b`)**:
+   - `StopEffect()` transitions state to `MEFFECTSTATE_ALLOCATED` without prematurely incrementing `ramPoolAvailable`.
+   - `FreeEffect()` properly releases memory pool (`ramPoolAvailable += SIZE_EFFECT`).
+   - Constructor zero-initializes `g_EffectStates`.
+
+3. **Auto-Centering & Default Effect Architecture (Phase 3 - `6cf1c43` & `66776da`)**:
+   - `EnableDefaultEffect()` and `PrintEffect()` added to `PIDReportHandler`.
+   - `FreeAllEffects()` preserves slot 0 default template and re-instantiates it at slot 1.
+   - `Joystick_::EnableAutoCenter(int16_t coefficient, int16_t saturation)` added to public API.
+   - `forceCalculator()` updated to evaluate slots `1..MAX_EFFECTS` and handle `duration == 0` for permanent default effects.
+
+4. **v1.0.0 Architecture Polish & Code Cleanup (Phase 4 - `d1ce9f6`)**:
+   - Both async timer ISR polling (`getUSBPID()`) and synchronous loop polling (`getForce()`) are supported.
+   - `out_ffbdata[64]` moved from `DynamicHID_` class member to local stack buffer in `RecvfromUsb()`.
+   - Dead variables (`timecnt`, `is_calculating_force`) removed.
+   - Output range mapping restored to `[-255, 255]`.
+   - Non-standard `inline` keywords on definitions in `Joystick.cpp` removed.
+
+5. **Diagnostic Logging (Phase 5 - `a9c5b4a`)**:
+   - Toggleable `DEBUG_PRINT` / `DEBUG_PRINTLN` macros enabled across `SetEffect`, `SetPeriodic`, `SetConstantForce`, and `UppackUsbData` (disabled by default `#if 0` for maximum runtime performance).
 
 ---
 
