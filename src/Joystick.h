@@ -149,9 +149,6 @@ private:
 	//force feedback effect params
 	EffectParams* m_effect_params;
 
-	//lock data
-	bool is_calculating_force = true;
-
 	///force calculate funtion
 	float NormalizeRange(int32_t x, int32_t maxValue);
 	int32_t ApplyEnvelope(volatile TEffectState& effect, int32_t value);

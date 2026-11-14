@@ -41,8 +41,6 @@
 #define JOYSTICK_INCLUDE_BRAKE       B00001000
 #define JOYSTICK_INCLUDE_STEERING    B00010000
 
-unsigned int timecnt = 0;
-
 Joystick_::Joystick_(
 	uint8_t hidReportId,
 	uint8_t joystickType,
@@ -512,6 +510,7 @@ void Joystick_::getUSBPID()
 
 void Joystick_::getForce(int32_t* forces) 
 {
+	DynamicHID().RecvfromUsb();
 	forceCalculator(forces);
 }
 
@@ -613,8 +612,8 @@ void Joystick_::forceCalculator(int32_t* forces) {
 	    }
 	forces[0] = (int32_t)((float)1.0 * forces[0] * m_gains[0].totalGain / 10000); // each effect gain * total effect gain = 10000
 	forces[1] = (int32_t)((float)1.0 * forces[1] * m_gains[1].totalGain / 10000); // each effect gain * total effect gain = 10000
-	forces[0] = map(forces[0], -10000, 10000, -250, 250);
-	forces[1] = map(forces[1], -10000, 10000, -250, 250);
+	forces[0] = map(forces[0], -10000, 10000, -255, 255);
+	forces[1] = map(forces[1], -10000, 10000, -255, 255);
 }
 
 int32_t Joystick_::ConstantForceCalculator(volatile TEffectState& effect) 
@@ -772,17 +771,17 @@ int32_t Joystick_::ConditionForceCalculator(volatile TEffectState& effect, float
 	return (int32_t)tempForce;
 }
 
-inline float Joystick_::NormalizeRange(int32_t x, int32_t maxValue) {
+float Joystick_::NormalizeRange(int32_t x, int32_t maxValue) {
 	return (float)x * 1.00 / maxValue;
 }
 
-inline int32_t  Joystick_::ApplyGain(int16_t value, uint8_t gain)
+int32_t  Joystick_::ApplyGain(int16_t value, uint8_t gain)
 {
 	int32_t value_32 = value;
 	return ((value_32 * gain) / 255);
 }
 
-inline int32_t Joystick_::ApplyEnvelope(volatile TEffectState& effect, int32_t value)
+int32_t Joystick_::ApplyEnvelope(volatile TEffectState& effect, int32_t value)
 {
 	int32_t magnitude = ApplyGain(effect.magnitude, effect.gain);
 	int32_t attackLevel = ApplyGain(effect.attackLevel, effect.gain);
