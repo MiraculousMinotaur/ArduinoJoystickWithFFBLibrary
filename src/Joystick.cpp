@@ -487,6 +487,24 @@ void Joystick_::begin(bool initAutoSendState)
 	sendState();
 }
 
+void Joystick_::EnableAutoCenter(int16_t coefficient, int16_t saturation)
+{
+	TEffectState effect;
+	memset(&effect, 0, sizeof(TEffectState));
+	effect.effectType = USB_EFFECT_SPRING;
+	effect.gain = 255;
+	effect.enableAxis = X_AXIS_ENABLE;  // TODO: Both axes?
+	effect.conditionBlocksCount = 1;
+	effect.conditions[0].cpOffset = 0;
+	effect.conditions[0].positiveCoefficient = coefficient;
+	effect.conditions[0].negativeCoefficient = coefficient;
+	effect.conditions[0].positiveSaturation = saturation;
+	effect.conditions[0].negativeSaturation = saturation;
+	effect.conditions[0].deadBand = 0;
+	effect.duration = 0;
+	DynamicHID().pidReportHandler.EnableDefaultEffect(effect);
+}
+
 void Joystick_::getUSBPID()
 {
 	DynamicHID().RecvfromUsb();
@@ -583,11 +601,11 @@ int32_t Joystick_::getEffectForce(volatile TEffectState& effect, Gains _gains, E
 void Joystick_::forceCalculator(int32_t* forces) {
 	forces[0] = 0;
     forces[1] = 0;
-	    for (int id = 0; id < MAX_EFFECTS; id++) {
+	    for (int id = 1; id <= MAX_EFFECTS; id++) {
 	    	volatile TEffectState& effect = DynamicHID().pidReportHandler.g_EffectStates[id];
 	    	if ((effect.state == MEFFECTSTATE_PLAYING) &&
-	    		((effect.elapsedTime <= effect.duration) ||
-	    		(effect.duration == USB_DURATION_INFINITE)) && !DynamicHID().pidReportHandler.devicePaused)
+	    		(effect.duration == 0 || effect.duration == USB_DURATION_INFINITE || effect.elapsedTime <= effect.duration) &&
+	    		!DynamicHID().pidReportHandler.devicePaused)
 	    	{
 				forces[0] += (int32_t)(getEffectForce(effect, m_gains[0], m_effect_params[0], 0));
 				forces[1] += (int32_t)(getEffectForce(effect, m_gains[1], m_effect_params[1], 1));
